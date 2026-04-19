@@ -73,15 +73,15 @@ class _AuthPageState extends State<AuthPage> {
           await _supabaseService.uploadAvatar(_imageFile!);
         }
 
-        // Logout and redirect to Login as requested
+        // Déconnexion forcée pour exiger une reconnexion manuelle
         await _supabaseService.signOut();
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Compte créé ! Veuillez confirmer votre email puis connectez-vous.'),
+              content: Text('Compte créé avec succès ! Veuillez vous connecter pour continuer.'),
               backgroundColor: AppColors.primary,
-              duration: Duration(seconds: 6),
+              duration: Duration(seconds: 4),
             ),
           );
           setState(() {

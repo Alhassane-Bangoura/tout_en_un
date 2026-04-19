@@ -19,7 +19,8 @@ class _BusinessIdeaWizardState extends State<BusinessIdeaWizard> {
   BusinessIdeaModel? _generatedIdea;
 
   final TextEditingController _budgetController = TextEditingController();
-  final TextEditingController _cityController = TextEditingController();
+  final List<String> _guineaCities = ['Conakry', 'N\'Zérékoré', 'Kankan', 'Kindia', 'Labé', 'Boké', 'Guéckédou', 'Macenta', 'Mamou', 'Fria', 'Autre (à préciser)'];
+  String _selectedCity = 'Conakry';
   String _selectedNiche = 'Commerce';
 
   Future<void> _generate() async {
@@ -35,7 +36,7 @@ class _BusinessIdeaWizardState extends State<BusinessIdeaWizard> {
     try {
       final request = BusinessIdeaRequestModel(
         budget: _budgetController.text,
-        city: _cityController.text,
+        city: _selectedCity,
         niche: _selectedNiche,
       );
       
@@ -51,7 +52,7 @@ class _BusinessIdeaWizardState extends State<BusinessIdeaWizard> {
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString().contains('Crédits') ? 'Crédits insuffisants' : 'Erreur de génération')),
+          SnackBar(content: Text(e.toString()), backgroundColor: Colors.redAccent, duration: const Duration(seconds: 8)),
         );
       }
     }
@@ -95,7 +96,7 @@ class _BusinessIdeaWizardState extends State<BusinessIdeaWizard> {
             const SizedBox(height: 40),
             GeneratorTextField(label: '01. Ton Budget (Gnf/Cfa)', hint: 'Ex: 500.000 GNF', example: 'Ex: Petit budget, 1 Million, etc.', controller: _budgetController),
             const SizedBox(height: 32),
-            GeneratorTextField(label: '02. Ta Ville / Zone', hint: 'Ex: Conakry, Dakar, Quartier...', example: 'Ex: Conakry, zone rurale, centre-ville', controller: _cityController),
+            _buildCitySelector(),
             const SizedBox(height: 32),
             _buildNicheSelector(),
             const SizedBox(height: 48),
@@ -111,6 +112,41 @@ class _BusinessIdeaWizardState extends State<BusinessIdeaWizard> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildCitySelector() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('02. TA VILLE / ZONE', style: GoogleFonts.plusJakartaSans(color: AppColors.primary, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 2.0)),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: _selectedCity,
+              isExpanded: true,
+              dropdownColor: AppColors.surfaceContainerHighest,
+              icon: Icon(Icons.arrow_drop_down, color: AppColors.primary),
+              style: GoogleFonts.plusJakartaSans(color: Colors.white, fontSize: 16),
+              items: _guineaCities.map((city) {
+                return DropdownMenuItem<String>(
+                  value: city,
+                  child: Text(city),
+                );
+              }).toList(),
+              onChanged: (val) {
+                if (val != null) setState(() => _selectedCity = val);
+              },
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -180,14 +216,166 @@ class _BusinessIdeaWizardState extends State<BusinessIdeaWizard> {
               ],
             ),
             const SizedBox(height: 48),
-            ElevatedButton(
-              onPressed: () => setState(() => _generatedIdea = null),
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.surfaceContainerHighest, minimumSize: const Size(double.infinity, 60), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
-              child: Text('NOUVELLE IDÉE', style: GoogleFonts.plusJakartaSans(color: Colors.white, fontWeight: FontWeight.bold)),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => setState(() => _generatedIdea = null),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.surfaceContainerHighest,
+                      minimumSize: const Size(0, 60),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                    ),
+                    child: Text('RETOUR', style: GoogleFonts.plusJakartaSans(color: Colors.white, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _showChatModal(context, idea),
+                    icon: const Icon(Icons.chat_bubble_outline, color: Colors.black, size: 20),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      minimumSize: const Size(0, 60),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                    ),
+                    label: Text('ÉCHANGER AVEC L\'IA', style: GoogleFonts.plusJakartaSans(color: Colors.black, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
             ),
+            const SizedBox(height: 24),
           ],
         ),
       ),
+    );
+  }
+
+  void _showChatModal(BuildContext context, BusinessIdeaModel idea) {
+    List<Map<String, String>> chatMessages = [
+      {'role': 'ai', 'content': 'Salut ! C\'est un excellent choix d\'idée de business. De quoi aimerais-tu parler ? (As-tu des questions sur le budget, les fournisseurs, ou la stratégie ?)'}
+    ];
+    final TextEditingController chatController = TextEditingController();
+    bool isChatLoading = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.background,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (BuildContext modalContext) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            
+            Future<void> sendMessage() async {
+              final text = chatController.text.trim();
+              if (text.isEmpty) return;
+              
+              setModalState(() {
+                chatMessages.add({'role': 'user', 'content': text});
+                isChatLoading = true;
+              });
+              chatController.clear();
+
+              try {
+                final replyText = await _supabaseService.chatAboutBusinessIdea(
+                  businessTitle: idea.title,
+                  businessContext: idea.description,
+                  question: text,
+                );
+                
+                setModalState(() {
+                  chatMessages.add({'role': 'ai', 'content': replyText});
+                  isChatLoading = false;
+                });
+              } catch (e) {
+                setModalState(() {
+                  chatMessages.add({'role': 'ai', 'content': 'Désolé, une erreur est survenue : \$e'});
+                  isChatLoading = false;
+                });
+              }
+            }
+
+            return Padding(
+              padding: EdgeInsets.only(bottom: MediaQuery.of(modalContext).viewInsets.bottom, left: 16, right: 16, top: 24),
+              child: SizedBox(
+                height: MediaQuery.of(modalContext).size.height * 0.75,
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Coach Business IA', style: GoogleFonts.spaceGrotesk(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                        IconButton(icon: const Icon(Icons.close, color: Colors.white), onPressed: () => Navigator.pop(modalContext)),
+                      ],
+                    ),
+                    const Divider(color: Colors.white24),
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: chatMessages.length,
+                        itemBuilder: (context, index) {
+                          final msg = chatMessages[index];
+                          final isUser = msg['role'] == 'user';
+                          return Align(
+                            alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(vertical: 8),
+                              padding: const EdgeInsets.all(16),
+                              constraints: BoxConstraints(maxWidth: MediaQuery.of(modalContext).size.width * 0.8),
+                              decoration: BoxDecoration(
+                                color: isUser ? AppColors.surfaceContainerHighest : AppColors.primary.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(16).copyWith(
+                                  bottomRight: isUser ? const Radius.circular(0) : const Radius.circular(16),
+                                  bottomLeft: !isUser ? const Radius.circular(0) : const Radius.circular(16),
+                                ),
+                                border: isUser ? null : Border.all(color: AppColors.primary.withOpacity(0.3)),
+                              ),
+                              child: Text(msg['content'] ?? '', style: GoogleFonts.plusJakartaSans(color: Colors.white)),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    if (isChatLoading)
+                      const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Align(alignment: Alignment.centerLeft, child: SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)))),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: chatController,
+                            style: GoogleFonts.plusJakartaSans(color: Colors.white),
+                            decoration: InputDecoration(
+                              hintText: 'Pose ta question ici...',
+                              hintStyle: GoogleFonts.plusJakartaSans(color: Colors.white54),
+                              filled: true,
+                              fillColor: AppColors.surfaceContainerHighest,
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                            ),
+                            onSubmitted: (_) => sendMessage(),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        CircleAvatar(
+                          backgroundColor: AppColors.primary,
+                          radius: 24,
+                          child: IconButton(
+                            icon: const Icon(Icons.send, color: Colors.black),
+                            onPressed: sendMessage,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 

@@ -5,6 +5,8 @@ import 'package:tout_en_un/core/supabase/supabase_service.dart';
 import 'package:tout_en_un/features/home/data/models/profile_model.dart';
 import 'package:tout_en_un/features/home/data/models/activity_model.dart';
 import 'package:tout_en_un/features/auth/presentation/pages/auth_page.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tout_en_un/features/tiktok_generator/presentation/pages/tiktok_generator_wizard.dart';
 import 'package:tout_en_un/features/business_idea/presentation/pages/business_idea_wizard.dart';
@@ -29,6 +31,8 @@ class _HomePageState extends State<HomePage> {
   int _totalActions = 0;
   bool _isLoading = true;
   int _currentIndex = 0;
+  final ImagePicker _picker = ImagePicker();
+  bool _isUploadingAvatar = false;
 
   @override
   void initState() {
@@ -49,6 +53,30 @@ class _HomePageState extends State<HomePage> {
         _totalActions = totalActions;
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _pickAndUploadAvatar() async {
+    final pickedFile = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 50);
+    if (pickedFile != null) {
+      if (mounted) setState(() => _isUploadingAvatar = true);
+      
+      final file = File(pickedFile.path);
+      final newUrl = await _supabaseService.uploadAvatar(file);
+      
+      if (mounted) {
+        setState(() => _isUploadingAvatar = false);
+        if (newUrl != null) {
+           ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Avatar mis à jour !'), backgroundColor: AppColors.primary),
+          );
+          _loadData(); // Rafraîchir pour voir la nouvelle photo
+        } else {
+           ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Erreur lors de la mise à jour de l'avatar"), backgroundColor: Colors.redAccent),
+          );
+        }
+      }
     }
   }
 
@@ -281,30 +309,64 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildProfileAvatar() {
-    return Container(
-      width: 140,
-      height: 140,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: AppColors.surface,
-        border: Border.all(color: AppColors.primary.withOpacity(0.5), width: 3),
-        boxShadow: [
-          BoxShadow(color: AppColors.primary.withOpacity(0.2), blurRadius: 20, spreadRadius: 5),
-        ],
-      ),
-      child: ClipOval(
-        child: _profile?.avatarUrl != null
-            ? Image.network(
-                _profile!.avatarUrl!,
-                fit: BoxFit.cover,
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return const Center(child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2));
-                },
-                errorBuilder: (context, error, stackTrace) => 
-                    const Icon(Icons.person_rounded, color: AppColors.primary, size: 70),
-              )
-            : const Icon(Icons.person_rounded, color: AppColors.primary, size: 70),
+    return GestureDetector(
+      onTap: _isUploadingAvatar ? null : _pickAndUploadAvatar,
+      child: Center(
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              width: 140,
+              height: 140,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.surface,
+                border: Border.all(color: AppColors.primary.withOpacity(0.5), width: 3),
+                boxShadow: [
+                  BoxShadow(color: AppColors.primary.withOpacity(0.2), blurRadius: 20, spreadRadius: 5),
+                ],
+              ),
+              child: ClipOval(
+                child: _profile?.avatarUrl != null
+                    ? Image.network(
+                        _profile!.avatarUrl!,
+                        fit: BoxFit.cover,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return const Center(child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2));
+                        },
+                        errorBuilder: (context, error, stackTrace) => 
+                            const Icon(Icons.person_rounded, color: AppColors.primary, size: 70),
+                      )
+                    : const Icon(Icons.person_rounded, color: AppColors.primary, size: 70),
+              ),
+            ),
+            if (_isUploadingAvatar)
+              Container(
+                width: 140,
+                height: 140,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.black.withOpacity(0.5),
+                ),
+                child: const Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                ),
+              ),
+            Positioned(
+              bottom: 0,
+              right: 0,
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: const BoxDecoration(
+                  color: AppColors.primary,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.camera_alt_rounded, color: Colors.black, size: 24),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

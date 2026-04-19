@@ -17,6 +17,9 @@ serve(async (req) => {
     const { type, ...params } = await req.json()
     console.log(`Type de requête reçu : ${type}`)
 
+    let systemRole = "";
+    let prompt = "";
+
     if (type === 'idea') {
       const { budget, city, niche } = params;
       systemRole = "Tu es un consultant business expert. Ton rôle est de concevoir un concept de business viable, PAS un script de vidéo.";
