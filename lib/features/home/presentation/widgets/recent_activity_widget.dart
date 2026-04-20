@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:tout_en_un/core/theme/app_colors.dart';
-import 'package:tout_en_un/features/home/data/models/activity_model.dart';
-import 'package:tout_en_un/features/home/presentation/pages/activity_details_page.dart';
+import 'package:aibusiness/core/theme/app_colors.dart';
+import 'package:aibusiness/features/home/data/models/activity_model.dart';
+import 'package:aibusiness/features/home/presentation/pages/activity_details_page.dart';
 
 class RecentActivityWidget extends StatelessWidget {
   final List<ActivityModel> items;

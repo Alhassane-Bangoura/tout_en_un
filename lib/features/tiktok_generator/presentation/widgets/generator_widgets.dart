@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:tout_en_un/core/theme/app_colors.dart';
+import 'package:aibusiness/core/theme/app_colors.dart';
 
 class GeneratorTextField extends StatelessWidget {
   final String label;
   final String hint;
   final String example;
   final TextEditingController controller;
+  final int maxLines;
 
   const GeneratorTextField({
     super.key,
@@ -14,6 +15,7 @@ class GeneratorTextField extends StatelessWidget {
     required this.hint,
     required this.example,
     required this.controller,
+    this.maxLines = 1,
   });
 
   @override
@@ -45,6 +47,7 @@ class GeneratorTextField extends StatelessWidget {
           ),
           child: TextField(
             controller: controller,
+            maxLines: maxLines,
             style: GoogleFonts.plusJakartaSans(
               color: AppColors.onSurface,
               fontSize: 15,

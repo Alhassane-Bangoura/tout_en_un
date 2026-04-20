@@ -1,4 +1,4 @@
-name: tout_en_un
+name: aibusiness
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -42,6 +42,7 @@ dependencies:
   image_picker: ^1.0.7
   connectivity_plus: ^6.1.1
   http: ^1.6.0
+  shared_preferences: ^2.5.1
 
 dev_dependencies:
   flutter_test:

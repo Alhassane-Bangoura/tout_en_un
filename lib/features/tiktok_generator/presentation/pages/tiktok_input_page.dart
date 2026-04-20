@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:tout_en_un/core/theme/app_colors.dart';
-import 'package:tout_en_un/features/tiktok_generator/data/models/tiktok_models.dart';
+import 'package:aibusiness/core/theme/app_colors.dart';
+import 'package:aibusiness/features/tiktok_generator/data/models/tiktok_models.dart';
 import '../widgets/generator_widgets.dart';
 
 class TiktokInputPage extends StatefulWidget {
@@ -19,12 +19,14 @@ class TiktokInputPage extends StatefulWidget {
 class _TiktokInputPageState extends State<TiktokInputPage> {
   final TextEditingController _productController = TextEditingController();
   final TextEditingController _audienceController = TextEditingController();
+  final TextEditingController _detailsController = TextEditingController();
   String _selectedStyle = 'Sérieux';
 
   @override
   void dispose() {
     _productController.dispose();
     _audienceController.dispose();
+    _detailsController.dispose();
     super.dispose();
   }
 
@@ -49,7 +51,7 @@ class _TiktokInputPageState extends State<TiktokInputPage> {
           ),
           const SizedBox(height: 12),
           Text(
-            'Réponds à 3 questions et génère ton script',
+            'Réponds à 4 questions et génère ton script',
             style: GoogleFonts.plusJakartaSans(
               color: AppColors.onSurfaceVariant,
               fontSize: 18,
@@ -97,6 +99,14 @@ class _TiktokInputPageState extends State<TiktokInputPage> {
                   selectedOption: _selectedStyle,
                   onSelected: (style) => setState(() => _selectedStyle = style),
                 ),
+                const SizedBox(height: 32),
+                GeneratorTextField(
+                  label: '04. DÉTAILS SUPPLÉMENTAIRES',
+                  hint: 'Ex: Met l\'accent sur la qualité...',
+                  example: 'Ex: Parle de la promo, du lieu de vente...',
+                  controller: _detailsController,
+                  maxLines: 3,
+                ),
                 const SizedBox(height: 40),
                 
                 // Primary CTA
@@ -110,6 +120,7 @@ class _TiktokInputPageState extends State<TiktokInputPage> {
                               ? "Tout le monde" 
                               : _audienceController.text,
                           style: _selectedStyle,
+                          details: _detailsController.text.isEmpty ? null : _detailsController.text,
                         ),
                       );
                     } else {

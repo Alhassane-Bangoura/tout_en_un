@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:tout_en_un/core/theme/app_colors.dart';
-import 'package:tout_en_un/core/supabase/supabase_service.dart';
+import 'package:aibusiness/core/theme/app_colors.dart';
+import 'package:aibusiness/core/supabase/supabase_service.dart';
+import 'package:aibusiness/features/home/presentation/pages/home_page.dart';
 
 class AuthPage extends StatefulWidget {
-  const AuthPage({super.key});
+  final String? showGateMessage;
+  const AuthPage({super.key, this.showGateMessage});
 
   @override
   State<AuthPage> createState() => _AuthPageState();
@@ -30,6 +32,25 @@ class _AuthPageState extends State<AuthPage> {
   final _supabaseService = SupabaseService();
   final _picker = ImagePicker();
 
+  @override
+  void initState() {
+    super.initState();
+    // Si on arrive de l'onboarding avec un message psychologique
+    if (widget.showGateMessage != null) {
+      _isLogin = false; // Forcer l'écran d'inscription
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(widget.showGateMessage!),
+            backgroundColor: AppColors.primary,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      });
+    }
+  }
+
   Future<void> _pickImage() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 50);
     if (pickedFile != null) {
@@ -50,6 +71,17 @@ class _AuthPageState extends State<AuthPage> {
             email: _emailController.text.trim(),
             password: _passwordController.text.trim(),
           );
+          
+          // VÉRIFICATION DES DONNÉES (Profil)
+          await _supabaseService.getProfile();
+
+          if (mounted) {
+            // Navigation directe vers le Dashboard en vidant la pile
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const HomePage()),
+              (route) => false,
+            );
+          }
         } on AuthException catch (e) {
           if (e.message.contains('Email not confirmed')) {
             throw AuthException('Veuillez confirmer votre e-mail avant de vous connecter. Vérifiez votre boîte de réception.');
@@ -66,12 +98,8 @@ class _AuthPageState extends State<AuthPage> {
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
           fullName: _fullNameController.text.trim(),
+          avatarFile: _imageFile,
         );
-        
-        // Upload avatar if selected
-        if (_imageFile != null) {
-          await _supabaseService.uploadAvatar(_imageFile!);
-        }
 
         // Déconnexion forcée pour exiger une reconnexion manuelle
         await _supabaseService.signOut();
@@ -79,9 +107,9 @@ class _AuthPageState extends State<AuthPage> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Compte créé avec succès ! Veuillez vous connecter pour continuer.'),
+              content: Text('Compte créé ! Un email de confirmation vous a été envoyé. Veuillez le valider pour vous connecter.'),
               backgroundColor: AppColors.primary,
-              duration: Duration(seconds: 4),
+              duration: Duration(seconds: 6),
             ),
           );
           setState(() {
@@ -118,6 +146,24 @@ class _AuthPageState extends State<AuthPage> {
               textColor: Colors.white,
               onPressed: () {},
             ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _handleOAuth(OAuthProvider provider) async {
+    setState(() => _isLoading = true);
+    try {
+      await _supabaseService.signInWithOAuth(provider);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur connexion ${provider.name}: $e'),
+            backgroundColor: Colors.redAccent,
           ),
         );
       }
@@ -173,6 +219,7 @@ class _AuthPageState extends State<AuthPage> {
                         return null;
                       },
                     ),
+                    if (_isLogin) _buildForgotPasswordButton(),
                     if (!_isLogin) ...[
                       const SizedBox(height: 20),
                       _buildTextField(
@@ -188,8 +235,10 @@ class _AuthPageState extends State<AuthPage> {
                         },
                       ),
                     ],
-                    const SizedBox(height: 48),
+                     const SizedBox(height: 48),
                     _buildSubmitButton(),
+                    const SizedBox(height: 32),
+                    _buildSocialLoginSection(),
                     const SizedBox(height: 24),
                     _buildToggleText(),
                   ],
@@ -224,12 +273,14 @@ class _AuthPageState extends State<AuthPage> {
         ),
         const SizedBox(height: 24),
         Text(
-          _isLogin ? 'Bon retour parmi nous !' : 'Crée ton compte pro',
+          widget.showGateMessage != null ? 'BOOM ! 🔥' : (_isLogin ? 'Bon retour parmi nous !' : 'Crée ton compte pro'),
           style: GoogleFonts.spaceGrotesk(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold, height: 1.1),
         ),
         const SizedBox(height: 8),
         Text(
-          _isLogin ? 'Connecte-toi pour accéder à tes outils IA.' : 'Rejoins l\'élite du business en Afrique.',
+          widget.showGateMessage != null 
+            ? 'Ton business est prêt. Inscris-toi pour voir le résultat.' 
+            : (_isLogin ? 'Connecte-toi pour accéder à tes outils IA.' : 'Rejoins l\'élite du business en Afrique.'),
           style: GoogleFonts.plusJakartaSans(color: AppColors.onSurfaceVariant, fontSize: 16),
         ),
       ],
@@ -314,6 +365,105 @@ class _AuthPageState extends State<AuthPage> {
     );
   }
 
+  Widget _buildForgotPasswordButton() {
+    return Align(
+      alignment: Alignment.centerRight,
+      child: TextButton(
+        onPressed: _showResetPasswordDialog,
+        child: Text(
+          'Mot de passe oublié ?',
+          style: GoogleFonts.plusJakartaSans(
+            color: AppColors.primary.withOpacity(0.7),
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showResetPasswordDialog() async {
+    final emailController = TextEditingController(text: _emailController.text);
+    return showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text(
+          'Réinitialisation',
+          style: GoogleFonts.spaceGrotesk(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Entrez votre email pour recevoir un lien de récupération.',
+              style: GoogleFonts.plusJakartaSans(color: Colors.white70, fontSize: 14),
+            ),
+            const SizedBox(height: 20),
+            TextField(
+              controller: emailController,
+              style: GoogleFonts.plusJakartaSans(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: 'votre@email.com',
+                hintStyle: GoogleFonts.plusJakartaSans(color: Colors.white10),
+                filled: true,
+                fillColor: AppColors.background,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                prefixIcon: const Icon(Icons.email_outlined, color: AppColors.primary, size: 20),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('ANNULER', style: GoogleFonts.spaceGrotesk(color: Colors.white38)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final email = emailController.text.trim();
+              if (email.isEmpty) return;
+              
+              Navigator.pop(context);
+              setState(() => _isLoading = true);
+              
+              try {
+                await _supabaseService.resetPasswordForEmail(email);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Lien de récupération envoyé ! Vérifiez vos emails.'),
+                      backgroundColor: AppColors.primary,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Erreur : $e'),
+                      backgroundColor: Colors.redAccent,
+                    ),
+                  );
+                }
+              } finally {
+                if (mounted) setState(() => _isLoading = false);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: Text('ENVOYER', style: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSubmitButton() {
     return ElevatedButton(
       onPressed: _submit,
@@ -328,6 +478,85 @@ class _AuthPageState extends State<AuthPage> {
       child: Text(
         _isLogin ? 'SE CONNECTER' : 'CRÉER MON COMPTE',
         style: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.bold, fontSize: 16),
+      ),
+    );
+  }
+
+  Widget _buildSocialLoginSection() {
+    return Column(
+      children: [
+        Row(
+          children: [
+            const Expanded(child: Divider(color: Colors.white10)),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                'OU CONTINUER AVEC',
+                style: GoogleFonts.plusJakartaSans(
+                  color: Colors.white24,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.5,
+                ),
+              ),
+            ),
+            const Expanded(child: Divider(color: Colors.white10)),
+          ],
+        ),
+        const SizedBox(height: 24),
+        Row(
+          children: [
+            Expanded(
+              child: _buildSocialButton(
+                label: 'Google',
+                iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_\"G\"_logo.svg/1200px-Google_\"G\"_logo.svg.png',
+                onPressed: () => _handleOAuth(OAuthProvider.google),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildSocialButton(
+                label: 'GitHub',
+                iconUrl: 'https://cdn-icons-png.flaticon.com/512/25/25231.png',
+                onPressed: () => _handleOAuth(OAuthProvider.github),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSocialButton({
+    required String label,
+    required String iconUrl,
+    required VoidCallback onPressed,
+  }) {
+    return InkWell(
+      onTap: onPressed,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.outlineVariant.withOpacity(0.1)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Image.network(iconUrl, height: 20, width: 20, errorBuilder: (_, __, ___) => const Icon(Icons.login, size: 20, color: Colors.white54)),
+            const SizedBox(width: 12),
+            Text(
+              label,
+              style: GoogleFonts.plusJakartaSans(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

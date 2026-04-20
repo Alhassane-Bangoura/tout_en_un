@@ -1,4 +1,4 @@
-package com.example.tout_en_un
+package com.example.aibusiness
 
 import io.flutter.embedding.android.FlutterActivity
 

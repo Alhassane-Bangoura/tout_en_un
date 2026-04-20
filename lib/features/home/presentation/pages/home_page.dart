@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:tout_en_un/core/theme/app_colors.dart';
-import 'package:tout_en_un/core/supabase/supabase_service.dart';
-import 'package:tout_en_un/features/home/data/models/profile_model.dart';
-import 'package:tout_en_un/features/home/data/models/activity_model.dart';
-import 'package:tout_en_un/features/auth/presentation/pages/auth_page.dart';
+import 'package:aibusiness/core/theme/app_colors.dart';
+import 'package:aibusiness/core/supabase/supabase_service.dart';
+import 'package:aibusiness/features/home/data/models/profile_model.dart';
+import 'package:aibusiness/features/home/data/models/activity_model.dart';
+import 'package:aibusiness/features/auth/presentation/pages/auth_page.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:tout_en_un/features/tiktok_generator/presentation/pages/tiktok_generator_wizard.dart';
-import 'package:tout_en_un/features/business_idea/presentation/pages/business_idea_wizard.dart';
-import 'package:tout_en_un/features/marketing_post/presentation/pages/marketing_post_wizard.dart';
+import 'package:aibusiness/features/tiktok_generator/presentation/pages/tiktok_generator_wizard.dart';
+import 'package:aibusiness/features/business_idea/presentation/pages/business_idea_wizard.dart';
+import 'package:aibusiness/features/marketing_post/presentation/pages/marketing_post_wizard.dart';
 import '../widgets/home_header_widget.dart';
 import '../widgets/action_card_widget.dart';
 import '../widgets/recent_activity_widget.dart';
@@ -57,25 +57,38 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _pickAndUploadAvatar() async {
-    final pickedFile = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 50);
-    if (pickedFile != null) {
-      if (mounted) setState(() => _isUploadingAvatar = true);
-      
-      final file = File(pickedFile.path);
-      final newUrl = await _supabaseService.uploadAvatar(file);
-      
+    try {
+      final pickedFile = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 50);
+      if (pickedFile != null) {
+        if (mounted) setState(() => _isUploadingAvatar = true);
+        
+        final file = File(pickedFile.path);
+        final newUrl = await _supabaseService.uploadAvatar(file);
+        
+        if (mounted) {
+          setState(() => _isUploadingAvatar = false);
+          if (newUrl != null) {
+             ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Avatar mis à jour !'), backgroundColor: AppColors.primary),
+            );
+            _loadData(); // Rafraîchir pour voir la nouvelle photo
+          } else {
+             ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Erreur lors de la mise à jour de l'avatar"), backgroundColor: Colors.redAccent),
+            );
+          }
+        }
+      }
+    } catch (e) {
       if (mounted) {
         setState(() => _isUploadingAvatar = false);
-        if (newUrl != null) {
-           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Avatar mis à jour !'), backgroundColor: AppColors.primary),
-          );
-          _loadData(); // Rafraîchir pour voir la nouvelle photo
-        } else {
-           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Erreur lors de la mise à jour de l'avatar"), backgroundColor: Colors.redAccent),
-          );
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur : ${e.toString().contains('Unauthorized') ? 'Permission refusée (Bucket avatars)' : e.toString()}'),
+            backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 5),
+          ),
+        );
       }
     }
   }
@@ -440,7 +453,7 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildTopAppBar() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       decoration: BoxDecoration(
         color: AppColors.background.withOpacity(0.8),
         border: Border(
@@ -450,29 +463,66 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
+      child: SafeArea(
+        bottom: false,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Flexible(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.token_rounded, color: AppColors.primary, size: 22),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      'AB BUSINESS AI',
+                      style: GoogleFonts.spaceGrotesk(
+                        color: AppColors.primary,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.5,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
           Row(
             children: [
-              const Icon(Icons.token_rounded, color: AppColors.primary, size: 24),
-              const SizedBox(width: 8),
-              Text(
-                'AB BUSINESS AI',
-                style: GoogleFonts.spaceGrotesk(
-                  color: AppColors.primary,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -1.0,
+              CreditsDisplayWidget(credits: _profile?.credits ?? 0),
+              const SizedBox(width: 12),
+              GestureDetector(
+                onTap: () => setState(() => _currentIndex = 2), // Aller au profil
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.surface,
+                    border: Border.all(color: AppColors.primary.withOpacity(0.3), width: 1.5),
+                  ),
+                  child: ClipOval(
+                    child: _profile?.avatarUrl != null
+                        ? Image.network(
+                            _profile!.avatarUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => 
+                                const Icon(Icons.person_rounded, color: AppColors.primary, size: 18),
+                          )
+                        : const Icon(Icons.person_rounded, color: AppColors.primary, size: 18),
+                  ),
                 ),
               ),
             ],
           ),
-          CreditsDisplayWidget(credits: _profile?.credits ?? 0),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildBottomNavBar() {
     return Container(

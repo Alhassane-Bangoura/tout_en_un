@@ -2,11 +2,13 @@ class TiktokRequestModel {
   final String product;
   final String targetAudience;
   final String style;
+  final String? details;
 
   const TiktokRequestModel({
     required this.product,
     required this.targetAudience,
     required this.style,
+    this.details,
   });
 }
 
@@ -16,6 +18,8 @@ class TiktokScriptModel {
   final String cta;
   final List<String> alternativeHooks;
   final List<String> instructions;
+  final int viralScore;
+  final String viralReason;
 
   const TiktokScriptModel({
     required this.hook,
@@ -23,6 +27,8 @@ class TiktokScriptModel {
     required this.cta,
     required this.alternativeHooks,
     required this.instructions,
+    this.viralScore = 80, // Default for backward compatibility
+    this.viralReason = '',
   });
 
   Map<String, dynamic> toJson() {
@@ -32,6 +38,8 @@ class TiktokScriptModel {
       'cta': cta,
       'alternativeHooks': alternativeHooks,
       'instructions': instructions,
+      'viralScore': viralScore,
+      'viralReason': viralReason,
     };
   }
 }

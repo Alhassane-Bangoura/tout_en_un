@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:tout_en_un/core/theme/app_colors.dart';
+import 'package:aibusiness/core/theme/app_colors.dart';
 
 class AppLoadingPage extends StatefulWidget {
   final VoidCallback onComplete;

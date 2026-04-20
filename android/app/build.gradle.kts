@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.tout_en_un"
+    namespace = "com.example.aibusiness"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -21,7 +21,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.tout_en_un"
+        applicationId = "com.example.aibusiness"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

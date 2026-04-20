@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:tout_en_un/core/theme/app_colors.dart';
-import 'package:tout_en_un/core/supabase/supabase_service.dart';
-import 'package:tout_en_un/features/marketing_post/data/models/marketing_post_models.dart';
-import 'package:tout_en_un/features/tiktok_generator/presentation/widgets/generator_widgets.dart';
-import 'package:tout_en_un/core/widgets/app_loading_page.dart';
+import 'package:aibusiness/core/theme/app_colors.dart';
+import 'package:aibusiness/core/supabase/supabase_service.dart';
+import 'package:aibusiness/features/marketing_post/data/models/marketing_post_models.dart';
+import 'package:aibusiness/features/tiktok_generator/presentation/widgets/generator_widgets.dart';
+import 'package:aibusiness/core/widgets/app_loading_page.dart';
 import 'package:flutter/services.dart';
 
 class MarketingPostWizard extends StatefulWidget {
@@ -136,43 +136,201 @@ class _MarketingPostWizardState extends State<MarketingPostWizard> {
     final post = _generatedPost!;
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0, leading: IconButton(icon: const Icon(Icons.close, color: Colors.white), onPressed: () => setState(() => _generatedPost = null))),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.close, color: Colors.white),
+          onPressed: () => setState(() => _generatedPost = null),
+        ),
+        actions: [
+          Container(
+            margin: const EdgeInsets.all(12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.bolt_rounded, color: AppColors.primary, size: 14),
+                const SizedBox(width: 4),
+                Text('SUCCESS AI', style: GoogleFonts.spaceGrotesk(color: AppColors.primary, fontSize: 10, fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ),
+        ],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Header Section
+            Text(
+              'TON MESSAGE\nEST PRÊT !',
+              style: GoogleFonts.spaceGrotesk(
+                color: Colors.white,
+                fontSize: 32,
+                fontWeight: FontWeight.w900,
+                height: 1.0,
+                letterSpacing: -1,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Optimisé pour la conversion et la viralité.',
+              style: GoogleFonts.plusJakartaSans(color: Colors.white38, fontSize: 14),
+            ),
+            const SizedBox(height: 32),
+
+            // Result Card (Glassmorphism)
             Container(
               padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(color: AppColors.surfaceContainer, borderRadius: BorderRadius.circular(24), border: Border.all(color: AppColors.outlineVariant.withOpacity(0.1))),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceContainer.withOpacity(0.4),
+                borderRadius: BorderRadius.circular(32),
+                border: Border.all(color: Colors.white.withOpacity(0.05)),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withOpacity(0.03),
+                    blurRadius: 40,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                   Text(post.headline, style: GoogleFonts.spaceGrotesk(color: AppColors.primary, fontSize: 22, fontWeight: FontWeight.bold)),
-                   const SizedBox(height: 20),
-                   Text(post.content, style: GoogleFonts.plusJakartaSans(color: Colors.white, fontSize: 16, height: 1.5)),
-                   const SizedBox(height: 20),
-                   Text(post.cta, style: GoogleFonts.plusJakartaSans(color: AppColors.secondary, fontSize: 18, fontWeight: FontWeight.bold, fontStyle: FontStyle.italic)),
-                   const SizedBox(height: 24),
-                   Wrap(spacing: 8, children: post.hashtags.map((h) => Text(h, style: GoogleFonts.robotoMono(color: AppColors.primary, fontSize: 12))).toList()),
+                  // Headline with Badge
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          'HOT',
+                          style: GoogleFonts.spaceGrotesk(
+                            color: Colors.black,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          post.headline, 
+                          style: GoogleFonts.spaceGrotesk(
+                            color: Colors.white, 
+                            fontSize: 20, 
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  
+                  // Main Content
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.02),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      post.content, 
+                      style: GoogleFonts.plusJakartaSans(
+                        color: Colors.white.withOpacity(0.9), 
+                        fontSize: 15, 
+                        height: 1.6,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // CTA Section
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    decoration: BoxDecoration(
+                      border: Border(top: BorderSide(color: Colors.white.withOpacity(0.05))),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('CALL TO ACTION:', style: GoogleFonts.spaceGrotesk(color: AppColors.primary, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+                        const SizedBox(height: 8),
+                        Text(
+                          post.cta, 
+                          style: GoogleFonts.plusJakartaSans(
+                            color: AppColors.secondary, 
+                            fontSize: 16, 
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Hashtags
+                  Wrap(
+                    spacing: 8, 
+                    runSpacing: 8,
+                    children: post.hashtags.map((h) => Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(h, style: GoogleFonts.robotoMono(color: AppColors.primary.withOpacity(0.7), fontSize: 11)),
+                    )).toList(),
+                  ),
                 ],
               ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 40),
+
+            // Action Buttons
             ElevatedButton.icon(
               onPressed: () {
                 Clipboard.setData(ClipboardData(text: "${post.headline}\n\n${post.content}\n\n${post.cta}\n\n${post.hashtags.join(' ')}"));
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Message copié !')));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('Message copié dans le presse-papier !'),
+                    backgroundColor: AppColors.primary,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                );
               },
-              icon: const Icon(Icons.copy_rounded, color: Colors.black),
-              label: Text('COPIER LE MESSAGE', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold)),
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.black, minimumSize: const Size(double.infinity, 60), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
+              icon: const Icon(Icons.copy_rounded, color: Colors.black, size: 20),
+              label: Text('COPIER LE MESSAGE', style: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary, 
+                foregroundColor: Colors.black, 
+                minimumSize: const Size(double.infinity, 64), 
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                elevation: 0,
+              ),
             ),
             const SizedBox(height: 16),
             OutlinedButton(
               onPressed: () => setState(() => _generatedPost = null),
-              style: OutlinedButton.styleFrom(minimumSize: const Size(double.infinity, 60), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)), side: const BorderSide(color: AppColors.outlineVariant)),
-              child: Text('NOUVEAU MESSAGE', style: GoogleFonts.plusJakartaSans(color: Colors.white)),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 64), 
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)), 
+                side: BorderSide(color: Colors.white.withOpacity(0.1)),
+              ),
+              child: Text(
+                'CRÉER UN AUTRE MESSAGE', 
+                style: GoogleFonts.spaceGrotesk(color: Colors.white38, fontWeight: FontWeight.bold, fontSize: 13),
+              ),
             ),
           ],
         ),

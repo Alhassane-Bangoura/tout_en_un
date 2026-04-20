@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/services.dart';
-import 'package:tout_en_un/core/theme/app_colors.dart';
-import 'package:tout_en_un/features/home/data/models/activity_model.dart';
-import 'package:tout_en_un/features/tiktok_generator/data/models/tiktok_models.dart';
-import 'package:tout_en_un/features/business_idea/data/models/business_idea_models.dart';
-import 'package:tout_en_un/features/marketing_post/data/models/marketing_post_models.dart';
+import 'package:aibusiness/core/theme/app_colors.dart';
+import 'package:aibusiness/features/home/data/models/activity_model.dart';
+import 'package:aibusiness/features/tiktok_generator/data/models/tiktok_models.dart';
+import 'package:aibusiness/features/business_idea/data/models/business_idea_models.dart';
+import 'package:aibusiness/features/marketing_post/data/models/marketing_post_models.dart';
+import 'package:aibusiness/features/business_idea/presentation/widgets/business_chat_widget.dart';
 
 class ActivityDetailsPage extends StatelessWidget {
   final ActivityModel activity;
@@ -60,7 +61,7 @@ class ActivityDetailsPage extends StatelessWidget {
       
       case 'idea':
         final idea = BusinessIdeaModel.fromJson(activity.metadata!);
-        return _BusinessIdeaResultView(idea: idea);
+        return _BusinessIdeaResultView(idea: idea, activity: activity);
 
       case 'marketing':
         final post = MarketingPostModel.fromJson(activity.metadata!);
@@ -162,48 +163,87 @@ class TiktokResultPageContent extends StatelessWidget {
   }
 }
 
-class _BusinessIdeaResultView extends StatelessWidget {
+class _BusinessIdeaResultView extends StatefulWidget {
   final BusinessIdeaModel idea;
+  final ActivityModel activity;
 
-  const _BusinessIdeaResultView({required this.idea});
+  const _BusinessIdeaResultView({required this.idea, required this.activity});
+
+  @override
+  State<_BusinessIdeaResultView> createState() => _BusinessIdeaResultViewState();
+}
+
+class _BusinessIdeaResultViewState extends State<_BusinessIdeaResultView> {
+  bool _showChat = false;
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
+    return Column(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(24)),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(idea.title, style: GoogleFonts.spaceGrotesk(color: AppColors.primary, fontSize: 24, fontWeight: FontWeight.bold)),
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(24)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(widget.idea.title, style: GoogleFonts.spaceGrotesk(color: AppColors.primary, fontSize: 24, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 12),
+                      Text(widget.idea.description, style: GoogleFonts.plusJakartaSans(color: Colors.white, fontSize: 16)),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 32),
+                _buildInfoRow('Profit Estimé', widget.idea.estimatedProfit, AppColors.secondary),
+                const SizedBox(height: 32),
+                Text('ÉTAPES DE LANCEMENT', style: GoogleFonts.plusJakartaSans(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 16),
+                ...widget.idea.steps.map((s) => Padding(padding: const EdgeInsets.only(bottom: 8), child: Text('• $s', style: GoogleFonts.plusJakartaSans(color: Colors.white70)))),
+                const SizedBox(height: 32),
+                
+                // Bouton Chat
+                ElevatedButton.icon(
+                  onPressed: () => setState(() => _showChat = !_showChat),
+                  icon: const Icon(Icons.psychology_rounded, color: Colors.black),
+                  label: const Text('CONTINUER LA DISCUSSION (IA)'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _showChat ? Colors.white24 : AppColors.primary, 
+                    foregroundColor: _showChat ? Colors.white : Colors.black, 
+                    minimumSize: const Size(double.infinity, 60), 
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                  ),
+                ),
                 const SizedBox(height: 12),
-                Text(idea.description, style: GoogleFonts.plusJakartaSans(color: Colors.white, fontSize: 16)),
+                
+                OutlinedButton.icon(
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: "${widget.idea.title}\n\n${widget.idea.description}\n\nProfit: ${widget.idea.estimatedProfit}\n\nÉtapes:\n${widget.idea.steps.join('\n')}"));
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Idée copiée !')));
+                  },
+                  icon: const Icon(Icons.copy_rounded, color: Colors.white54),
+                  label: const Text('COPIER LE CONCEPT'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white54, 
+                    minimumSize: const Size(double.infinity, 54), 
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                    side: const BorderSide(color: Colors.white12),
+                  ),
+                ),
               ],
             ),
           ),
-          const SizedBox(height: 32),
-          _buildInfoRow('Profit Estimé', idea.estimatedProfit, AppColors.secondary),
-          const SizedBox(height: 32),
-          Text('ÉTAPES DE LANCEMENT', style: GoogleFonts.plusJakartaSans(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 16),
-          ...idea.steps.map((s) => Padding(padding: const EdgeInsets.only(bottom: 8), child: Text('• $s', style: GoogleFonts.plusJakartaSans(color: Colors.white70)))),
-          const SizedBox(height: 48),
-          ElevatedButton.icon(
-            onPressed: () {
-              Clipboard.setData(ClipboardData(text: "${idea.title}\n\n${idea.description}\n\nProfit: ${idea.estimatedProfit}\n\nÉtapes:\n${idea.steps.join('\n')}"));
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Idée copiée !')));
-            },
-            icon: const Icon(Icons.copy_rounded),
-            label: const Text('COPIER LE CONCEPT'),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.black, minimumSize: const Size(double.infinity, 60), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
+        ),
+        if (_showChat)
+          BusinessChatWidget(
+            activity: widget.activity,
+            onClose: () => setState(() => _showChat = false),
           ),
-        ],
-      ),
+      ],
     );
   }
 
