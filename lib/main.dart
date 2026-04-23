@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -9,16 +10,36 @@ import 'features/auth/presentation/pages/auth_page.dart';
 import 'core/widgets/no_connection_page.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  
-  // Initialize Supabase
-  await SupabaseClientInstance.initialize();
+  try {
+    WidgetsFlutterBinding.ensureInitialized();
+    
+    // Initialize Supabase
+    await SupabaseClientInstance.initialize();
 
-  // Load preferences
-  final prefs = await SharedPreferences.getInstance();
-  final bool hasSeenOnboarding = prefs.getBool('hasSeenOnboarding') ?? false;
+    // Load preferences
+    final prefs = await SharedPreferences.getInstance();
+    final bool hasSeenOnboarding = prefs.getBool('hasSeenOnboarding') ?? false;
 
-  runApp(MyApp(hasSeenOnboarding: hasSeenOnboarding));
+    runApp(MyApp(hasSeenOnboarding: hasSeenOnboarding));
+  } catch (e) {
+    debugPrint('Critical Initialization Error: $e');
+    runApp(MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        backgroundColor: const Color(0xFF0D0D0D),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Text(
+              'Erreur critique au démarrage: $e',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white),
+            ),
+          ),
+        ),
+      ),
+    ));
+  }
 }
 
 class MyApp extends StatefulWidget {

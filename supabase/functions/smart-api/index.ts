@@ -21,21 +21,39 @@ serve(async (req) => {
     let prompt = "";
 
     if (type === 'idea') {
-      const { budget, city, niche } = params;
-      systemRole = "Tu es un consultant business expert. Ton rôle est de concevoir un concept de business viable, PAS un script de vidéo.";
-      prompt = `CONÇOIS UNE IDÉE DE BUSINESS RENTABLE (PAS UN SCRIPT VIDÉO) pour :
-Budget : ${budget}
-Ville/Zone : ${city || 'Non spécifiée'}
-Secteur/Niche : ${niche || 'Général'}
+      const { budget, city, niche, availableTime, skills, fears, businessIdea } = params;
+      systemRole = `Tu es un MENTOR STRATÉGIQUE RÉALISTE. Ton but est d'aider quelqu'un qui a un budget (${budget}) et une niche (${niche}) mais qui manque de stratégie et d'expérience. 
+Ville : ${city}
+IMPORTANT : Utilise EXCLUSIVEMENT la monnaie GNF (Franc Guinéen) pour tous les calculs et estimations de profit.
+INTERDICTION FORMELLE d'utiliser les termes : "FCFA", "CFA", "Franc CFA", "XOF", "XAF", "Euro", "Dollar". Si une monnaie étrangère est fournie en entrée, CONVERTIS-LA mentalement ou IGNORE-LA pour ne parler QUE en GNF.
+Ton ton est celui d'un entrepreneur aguerri qui donne des conseils "terrain".`;
 
-Le résultat doit être un plan d'affaires structuré au format JSON :
+      prompt = `GÉNÈRE UNE STRATÉGIE DE DÉMARRAGE POUR : "${businessIdea || niche}".
+Budget disponible : ${budget}
+Profil : ${skills}
+Plus grande peur : ${fears}
+
+CONSIGNES DE MENTORAT :
+1. Analyse comment maximiser les ${budget} à ${city}.
+2. Ne propose pas d'idées génériques. Propose un angle d'attaque spécifique (ex: au lieu de "Restauration", propose "Livraison de petit déjeuner aux bureaux de Kaloum").
+3. Adresse directement la peur (${fears}) dans ton explication.
+4. Parle de "stratégie de croissance" et de "validation" au lieu de juste "étapes".
+
+Format JSON :
 {
-  "title": "Nom commercial accrocheur",
-  "description": "Explique concrètement le concept du business et comment il gagne de l'argent",
-  "steps": ["Étape 1 de mise en place", "Étape 2", "Étape 3"],
-  "estimatedProfit": "Bénéfice net estimé par mois",
-  "pros": ["Point fort du marché"],
-  "cons": ["Difficulté technique ou logistique"]
+  "title": "Nom du concept",
+  "description": "Pourquoi c'est LA stratégie pour cette personne avec ce budget.",
+  "steps": ["Phase de validation", "Phase d'encaissement", "Phase de système"],
+  "estimatedProfit": "Profit mensuel net réaliste",
+  "pros": ["Pourquoi le budget de ${budget} est un avantage"],
+  "cons": ["Le défi principal de stratégie à surveiller"],
+  "actionPlan30Days": [
+    "Semaine 1 : [Action de terrain]",
+    "Semaine 2 : [Lancement]",
+    "Semaine 3 : [Optimisation]",
+    "Semaine 4 : [Expansion]"
+  ],
+  "aiConclusion": "Ton conseil final de mentor sur pourquoi l'expérience viendra en pratiquant ce business précis."
 }`;
     } else if (type === 'marketing') {
       const { product, platform, tone } = params;

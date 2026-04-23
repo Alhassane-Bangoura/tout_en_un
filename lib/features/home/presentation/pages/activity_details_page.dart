@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/services.dart';
 import 'package:aibusiness/core/theme/app_colors.dart';
+import 'package:aibusiness/core/supabase/supabase_service.dart';
 import 'package:aibusiness/features/home/data/models/activity_model.dart';
 import 'package:aibusiness/features/tiktok_generator/data/models/tiktok_models.dart';
 import 'package:aibusiness/features/business_idea/data/models/business_idea_models.dart';
+import 'package:aibusiness/features/incubator/presentation/pages/incubator_dashboard.dart';
 import 'package:aibusiness/features/marketing_post/data/models/marketing_post_models.dart';
 import 'package:aibusiness/features/business_idea/presentation/widgets/business_chat_widget.dart';
 
@@ -175,6 +177,7 @@ class _BusinessIdeaResultView extends StatefulWidget {
 
 class _BusinessIdeaResultViewState extends State<_BusinessIdeaResultView> {
   bool _showChat = false;
+  bool _isLaunching = false;
 
   @override
   Widget build(BuildContext context) {
@@ -199,12 +202,28 @@ class _BusinessIdeaResultViewState extends State<_BusinessIdeaResultView> {
                   ),
                 ),
                 const SizedBox(height: 32),
-                _buildInfoRow('Profit Estimé', widget.idea.estimatedProfit, AppColors.secondary),
+                _buildInfoRow('Profit Estimé', _sanitizeCurrency(widget.idea.estimatedProfit), AppColors.secondary),
                 const SizedBox(height: 32),
                 Text('ÉTAPES DE LANCEMENT', style: GoogleFonts.plusJakartaSans(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 16),
                 ...widget.idea.steps.map((s) => Padding(padding: const EdgeInsets.only(bottom: 8), child: Text('• $s', style: GoogleFonts.plusJakartaSans(color: Colors.white70)))),
                 const SizedBox(height: 32),
+                
+                // Bouton Incubateur (Nouveau)
+                ElevatedButton.icon(
+                  onPressed: _isLaunching ? null : () => _startIncubationFromDetails(context, widget.idea),
+                  icon: _isLaunching 
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
+                    : const Icon(Icons.rocket_launch_rounded, color: Colors.black),
+                  label: Text(_isLaunching ? 'LANCEMENT...' : 'LANCER DANS L\'INCUBATEUR'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF00FFA3),
+                    foregroundColor: Colors.black,
+                    minimumSize: const Size(double.infinity, 60),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                  ),
+                ),
+                const SizedBox(height: 12),
                 
                 // Bouton Chat
                 ElevatedButton.icon(
@@ -214,7 +233,7 @@ class _BusinessIdeaResultViewState extends State<_BusinessIdeaResultView> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _showChat ? Colors.white24 : AppColors.primary, 
                     foregroundColor: _showChat ? Colors.white : Colors.black, 
-                    minimumSize: const Size(double.infinity, 60), 
+                    minimumSize: const Size(double.infinity, 54), 
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                   ),
                 ),
@@ -247,13 +266,63 @@ class _BusinessIdeaResultViewState extends State<_BusinessIdeaResultView> {
     );
   }
 
+  String _sanitizeCurrency(String text) {
+    return text
+        .replaceAll(RegExp(r'FCFA|CFA|Franc CFA|XOF|XAF', caseSensitive: false), 'GNF')
+        .replaceAll(RegExp(r'Dollar|Euro|€|\$', caseSensitive: false), 'GNF'); // Fallback pour les tests
+  }
+
+  Future<void> _startIncubationFromDetails(BuildContext context, BusinessIdeaModel idea) async {
+    setState(() => _isLaunching = true);
+    final service = SupabaseService();
+    
+    // Récupérer les infos depuis les métadonnées de l'activité ou le profil
+    final String budget = widget.activity.metadata?['budget'] ?? "Plus de 1M";
+    final String city = widget.activity.metadata?['city'] ?? "Conakry";
+    final String? skills = widget.activity.metadata?['skills'];
+    final String? fears = widget.activity.metadata?['fears'];
+    final String? time = widget.activity.metadata?['availableTime'];
+
+    final request = BusinessIdeaRequestModel(
+      budget: budget, 
+      city: city,
+      niche: idea.title,
+      businessIdea: '${idea.title} - ${idea.description}',
+      skills: skills,
+      fears: fears,
+      availableTime: time,
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Lancement de l'Incubateur...")),
+    );
+
+    try {
+      final result = await service.startIncubation(request);
+      if (mounted && result != null && result['id'] != null) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => IncubatorDashboard(initialProjectId: result['id'])),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Erreur: $e"), backgroundColor: Colors.redAccent),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLaunching = false);
+    }
+  }
+
   Widget _buildInfoRow(String label, String value, Color color) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label.toUpperCase(), style: GoogleFonts.plusJakartaSans(color: color, fontSize: 10, fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
-        Text(value, style: GoogleFonts.spaceGrotesk(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+        Text(_sanitizeCurrency(value), style: GoogleFonts.spaceGrotesk(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
       ],
     );
   }

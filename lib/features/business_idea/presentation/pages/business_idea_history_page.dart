@@ -4,6 +4,7 @@ import 'package:aibusiness/core/theme/app_colors.dart';
 import 'package:aibusiness/core/supabase/supabase_service.dart';
 import 'package:aibusiness/features/home/data/models/activity_model.dart';
 import 'package:aibusiness/features/business_idea/data/models/business_idea_models.dart';
+import 'package:aibusiness/features/incubator/presentation/pages/incubator_dashboard.dart';
 import 'package:aibusiness/features/business_idea/presentation/widgets/business_chat_widget.dart';
 
 class BusinessIdeaHistoryPage extends StatefulWidget {
@@ -129,6 +130,7 @@ class _BusinessIdeaHistoryPageState extends State<BusinessIdeaHistoryPage> {
           trailing: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white38),
           children: [
             if (idea != null) _buildIdeaDetails(idea) else _buildSimpleSummary(activity),
+            if (idea != null) _buildIncubateHistoryButton(idea),
             if (idea != null) _buildProgressSection(activity, idea),
             if (idea != null) _buildStrategyChatButton(context, activity),
           ],
@@ -276,6 +278,69 @@ class _BusinessIdeaHistoryPageState extends State<BusinessIdeaHistoryPage> {
         ),
       ],
     );
+  }
+
+  Widget _buildIncubateHistoryButton(BusinessIdeaModel idea) {
+    return Column(
+      children: [
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: () => _startIncubationFromHistory(idea),
+            icon: const Icon(Icons.rocket_launch_rounded, size: 18, color: Colors.black),
+            label: Text('LANCER DANS L\'INCUBATEUR', style: GoogleFonts.plusJakartaSans(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 12)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF00FFA3),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              elevation: 4,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _startIncubationFromHistory(BusinessIdeaModel idea) async {
+    // Note: Dans l'historique, on a déjà l'idée générée. 
+    // On va simuler un BusinessIdeaRequestModel minimal
+    final request = BusinessIdeaRequestModel(
+      budget: "Ancien Projet", // On pourrait stocker le budget dans metadata si on voulait être précis
+      city: "Historique",
+      niche: idea.title,
+      availableTime: "Non spécifié",
+      skills: "Voir projet",
+      fears: "Voir projet",
+      businessIdea: '${idea.title} - ${idea.description}',
+    );
+
+    setState(() => _isLoading = true);
+
+    try {
+      final result = await _service.startIncubation(request);
+      
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Incubation lancée !"), backgroundColor: Color(0xFF00FFA3)),
+        );
+        // Naviguer vers le dashboard spécifique
+        if (result != null && result['id'] != null) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => IncubatorDashboard(initialProjectId: result['id'])),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Erreur: ${e.toString()}"), backgroundColor: Colors.redAccent),
+        );
+      }
+    }
   }
 
   String _formatDate(DateTime? date) {

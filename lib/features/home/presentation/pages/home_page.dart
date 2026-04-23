@@ -10,7 +10,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:aibusiness/features/tiktok_generator/presentation/pages/tiktok_generator_wizard.dart';
 import 'package:aibusiness/features/business_idea/presentation/pages/business_idea_wizard.dart';
+import 'package:aibusiness/features/business_idea/presentation/pages/business_idea_history_page.dart';
 import 'package:aibusiness/features/marketing_post/presentation/pages/marketing_post_wizard.dart';
+import 'package:aibusiness/features/incubator/presentation/pages/incubator_dashboard.dart';
 import '../widgets/home_header_widget.dart';
 import '../widgets/action_card_widget.dart';
 import '../widgets/recent_activity_widget.dart';
@@ -197,6 +199,27 @@ class _HomePageState extends State<HomePage> {
               size: ActionCardSize.secondary,
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MarketingPostWizard())).then((_) => _loadData()),
             ),
+            const SizedBox(height: 16),
+            const SizedBox(height: 16),
+            ActionCardWidget(
+              title: 'Mes Projets Sauvegardés',
+              subtitle: 'Reprendre la discussion avec mon Consultant IA',
+              ctaLabel: 'Ouvrir projets',
+              icon: Icons.history_edu_rounded,
+              accentColor: Colors.deepPurpleAccent,
+              size: ActionCardSize.secondary,
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const BusinessIdeaHistoryPage())).then((_) => _loadData()),
+            ),
+            const SizedBox(height: 16),
+            ActionCardWidget(
+              title: 'Mission Control (Incubateur)',
+              subtitle: 'Suivez vos missions et l\'évolution de votre startup',
+              ctaLabel: 'Ouvrir l\'incubateur',
+              icon: Icons.rocket_launch_rounded,
+              accentColor: const Color(0xFF00FFA3),
+              size: ActionCardSize.secondary,
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const IncubatorDashboard())),
+            ),
             const SizedBox(height: 48),
             _buildRecentActivityHeader(),
             const SizedBox(height: 16),
@@ -342,7 +365,7 @@ class _HomePageState extends State<HomePage> {
               child: ClipOval(
                 child: _profile?.avatarUrl != null
                     ? Image.network(
-                        _profile!.avatarUrl!,
+                        '${_profile!.avatarUrl!}?t=${DateTime.now().millisecondsSinceEpoch}',
                         fit: BoxFit.cover,
                         loadingBuilder: (context, child, loadingProgress) {
                           if (loadingProgress == null) return child;
@@ -507,7 +530,7 @@ class _HomePageState extends State<HomePage> {
                   child: ClipOval(
                     child: _profile?.avatarUrl != null
                         ? Image.network(
-                            _profile!.avatarUrl!,
+                            '${_profile!.avatarUrl!}?t=${DateTime.now().millisecondsSinceEpoch}',
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) => 
                                 const Icon(Icons.person_rounded, color: AppColors.primary, size: 18),

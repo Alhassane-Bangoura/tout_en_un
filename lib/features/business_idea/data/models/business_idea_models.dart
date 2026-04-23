@@ -2,12 +2,18 @@ class BusinessIdeaRequestModel {
   final String budget;
   final String city;
   final String niche;
+  final String? availableTime;
+  final String? skills;
+  final String? fears;
   final String? businessIdea;
 
   const BusinessIdeaRequestModel({
     required this.budget,
     required this.city,
     required this.niche,
+    this.availableTime,
+    this.skills,
+    this.fears,
     this.businessIdea,
   });
 
@@ -16,6 +22,9 @@ class BusinessIdeaRequestModel {
       'budget': budget,
       'city': city,
       'niche': niche,
+      if (availableTime != null) 'availableTime': availableTime,
+      if (skills != null) 'skills': skills,
+      if (fears != null) 'fears': fears,
       if (businessIdea != null) 'businessIdea': businessIdea,
     };
   }
@@ -44,10 +53,16 @@ class BusinessIdeaModel {
 
   factory BusinessIdeaModel.fromJson(Map<String, dynamic> json) {
     return BusinessIdeaModel(
-      title: json['title'] ?? '',
-      description: json['description'] ?? '',
+      title:
+          json['title'] ?? json['niche'] ?? json['product'] ?? 'Idée Business',
+      description:
+          json['description'] ??
+          json['summary'] ??
+          json['hook'] ??
+          'Aucune description disponible.',
       steps: List<String>.from(json['steps'] ?? []),
-      estimatedProfit: json['estimatedProfit'] ?? '',
+      estimatedProfit:
+          json['estimatedProfit'] ?? json['profit'] ?? 'À déterminer',
       pros: List<String>.from(json['pros'] ?? []),
       cons: List<String>.from(json['cons'] ?? []),
       actionPlan30Days: List<String>.from(json['actionPlan30Days'] ?? []),

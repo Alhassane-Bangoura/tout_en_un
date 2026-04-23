@@ -4,6 +4,7 @@ class ProfileModel {
   final int credits;
   final String? avatarUrl;
   final DateTime? updatedAt;
+  final Map<String, dynamic>? psychologicalProfile;
 
   ProfileModel({
     required this.id,
@@ -11,6 +12,7 @@ class ProfileModel {
     required this.credits,
     this.avatarUrl,
     this.updatedAt,
+    this.psychologicalProfile,
   });
 
   factory ProfileModel.fromJson(Map<String, dynamic> json) {
@@ -22,6 +24,9 @@ class ProfileModel {
       updatedAt: json['updated_at'] != null 
           ? DateTime.parse(json['updated_at'] as String) 
           : null,
+      psychologicalProfile: json['psychological_profile'] != null
+          ? Map<String, dynamic>.from(json['psychological_profile'] as Map)
+          : null,
     );
   }
 
@@ -32,6 +37,7 @@ class ProfileModel {
       'credits': credits,
       'avatar_url': avatarUrl,
       'updated_at': updatedAt?.toIso8601String(),
+      'psychological_profile': psychologicalProfile,
     };
   }
 }

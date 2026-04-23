@@ -129,11 +129,16 @@ class SupabaseService {
         profileData = Map<String, dynamic>.from(data as Map);
         
         // --- LOGIQUE SPÉCIALE PHASE DE TEST ---
-        // Si les crédits sont < 500, on les remet à 500 pour ne pas bloquer les testeurs
-        if ((profileData['credits'] as num? ?? 0) < 500) {
-          print('Phase de Test : Remise à 500 crédits pour ${user.id}');
-          profileData['credits'] = 500;
-          await _client.from('profiles').update({'credits': 500}).eq('id', user.id);
+        // Si les crédits sont bas, on les remet à 1000 pour ne pas bloquer les testeurs
+        if ((profileData['credits'] as num? ?? 0) < 200) {
+          print('Phase de Test : Recharge automatique (1000 crédits) pour ${user.id}');
+          profileData['credits'] = 1000;
+          try {
+            await _client.from('profiles').update({'credits': 1000}).eq('id', user.id);
+          } catch (e) {
+            print('Erreur lors de la persistance de la recharge (test): $e');
+            // On continue quand même avec les crédits en local pour débloquer l'utilisateur
+          }
         }
 
         // Synchronisation du nom si manquant
@@ -159,6 +164,18 @@ class SupabaseService {
     } catch (e) {
       print('Erreur getProfile: $e');
       return null;
+    }
+  }
+
+  Future<void> updatePsychologicalProfile(Map<String, dynamic> data) async {
+    final user = _client.auth.currentUser;
+    if (user == null) return;
+    try {
+      await _client.from('profiles').update({
+        'psychological_profile': data,
+      }).eq('id', user.id);
+    } catch (e) {
+      print('Erreur updatePsychologicalProfile: $e');
     }
   }
 
@@ -268,41 +285,11 @@ class SupabaseService {
         throw Exception('Crédits insuffisants');
       }
 
-      // Injection d'un Prompt Expert pour des vidéos virales
-      final injectionPrompt = '''
-PRODUIT/SERVICE : ${request.product}
-CIBLE : ${request.targetAudience}
-STYLE : ${request.style}
-DÉTAILS CRITIQUES À INCLURE : ${request.details ?? "Libre cours à ton expertise"}
-
-!!! CONSIGNE DE PRÉCISION ABSOLUE !!!
-- Tu DOIS te baser EXCLUSIVEMENT sur les besoins saisis par l'utilisateur.
-- Ne sois pas générique. Si l'utilisateur vend du "Miel de Dalaba", parle spécifiquement du miel et de Dalaba.
-- Ton : Parle comme un humain passionné, un expert qui veut la réussite de son client.
-
-!!! STRUCTURE DE VIRALITÉ (RÉTENTION MAXIMALE) !!!
-1. Hook puissant (0-3s) : Casse le scroll.
-2. Corps : Rythmé, informatif, créant le désir.
-3. CTA : Clair et irrésistible.
-
-Format : Retourne uniquement un JSON structuré incluant l'analyse de viralité.
-Exemple:
-{
-  "hook": "...",
-  "body": [{"timestamp": "0s", "content": "..."}],
-  "cta": "...",
-  "instructions": ["..."],
-  "alternativeHooks": ["..."],
-  "viralScore": 98,
-  "viralReason": "Pourquoi l'algorithme va adorer ça"
-}
-''';
-
       final response = await _client.functions.invoke(
         'smart-api',
         body: {
           'type': 'video',
-          'product': injectionPrompt,
+          'product': request.product,
           'audience': request.targetAudience,
           'style': request.style,
         },
@@ -353,48 +340,25 @@ Exemple:
       final profile = await getProfile();
       if (profile == null || profile.credits < cost) throw Exception('Crédits insuffisants');
 
-      // Injection d'un système consultant expert
-      final injectionPrompt = '''
-VILLE : ${request.city} (Guinée)
-BUDGET MAX : ${request.budget}
-SECTEUR : ${request.niche}
-IDÉE DE BASE : ${request.businessIdea ?? "À créer entièrement"}
-
-!!! MISSION DU CONSULTANT (STRATÉGIE & RÉALITÉ) !!!
-1. Tu es un consultant business expert de l'économie guinéenne.
-2. MONTANTS DYNAMIQUES : Ne donne pas de chiffres statiques. Calcule les coûts RÉELS basés sur la ville de ${request.city} (ex: location boutique, prix des matières premières locales).
-3. PRÉCISION : Colle à 100% au besoin saisi. Si c'est du cosmétique bio, ne parle pas de chimie industrielle.
-4. STRATÉGIE & DISCIPLINE : Propose un plan d'action concert et rigoureux.
-
-!!! FORMAT JSON ATTENDU !!!
-{
-  "title": "Nom commercial percutant",
-  "description": "Description humaine et motivante du concept (pas de texte robotique)",
-  "steps": ["Étape 1 concrète", "Étape 2", "Étape 3"],
-  "estimatedProfit": "Bénéfice estimé (ex: 2.000.000 GNF / mois)",
-  "pros": ["Avantage local à ${request.city}"],
-  "cons": ["Défi de discipline ou logistique"],
-  "actionPlan30Days": [
-    "Jour 1-7 : [Action de recherche]",
-    "Jour 8-14 : [Action de mise en place]",
-    "Jour 15-30 : [Lancement et premiers clients]"
-  ],
-  "aiConclusion": "Un petit paragraphe inspirant expliquant pourquoi utiliser l'IA générative ou l'intelligence technologique aujourd'hui te donne un avantage injuste (unfair advantage) par rapport à tes concurrents locaux dans ce domaine."
-}
-''';
-
+      // Le prompt complexe et le bypass "video" ont été retirés.
+      // Nous utilisons maintenant le type natif "idea" de l'Edge Function.
+      // Elle gère elle-même le profil psychologique.
       final response = await _client.functions.invoke(
         'smart-api',
         body: {
-          'type': 'video', // Bypass
-          'product': injectionPrompt,
-          'audience': 'Investisseurs',
-          'style': 'Consultant Senior. IGNORE THE "hook" AND "body" JSON STRICT FORMAT BELOW. YOU MUST ABSOLUTELY RETURN THE JSON FORMAT ABOVE WITH "title", "description", "estimatedProfit" ETC. CRITICAL IMPERATIVE.',
+          'type': 'idea',
+          'budget': request.budget,
+          'city': request.city,
+          'niche': request.niche,
+          'availableTime': request.availableTime,
+          'skills': request.skills,
+          'fears': request.fears,
+          'businessIdea': request.businessIdea,
         },
       );
 
       if (response.status != 200) {
-        throw Exception('Erreur API (\${response.status}) : \${response.data}');
+        throw Exception('Erreur API (${response.status}) : ${response.data}');
       }
 
       final data = response.data as Map<String, dynamic>;
@@ -406,6 +370,19 @@ IDÉE DE BASE : ${request.businessIdea ?? "À créer entièrement"}
       fullMetadata['budget'] = request.budget;
       fullMetadata['city'] = request.city;
       fullMetadata['niche'] = request.niche;
+      if (request.availableTime != null) fullMetadata['availableTime'] = request.availableTime;
+      if (request.skills != null) fullMetadata['skills'] = request.skills;
+      if (request.fears != null) fullMetadata['fears'] = request.fears;
+
+      // Sauvegarder automatiquement dans le profil pour persistance
+      await updatePsychologicalProfile({
+        'budget': request.budget,
+        'city': request.city,
+        'niche': request.niche,
+        'availableTime': request.availableTime,
+        'skills': request.skills,
+        'fears': request.fears,
+      });
 
       final activity = await saveActivity(
         title: 'Idée Business : ${idea.title}',
@@ -431,34 +408,13 @@ IDÉE DE BASE : ${request.businessIdea ?? "À créer entièrement"}
     try {
       final profile = await getProfile();
       if (profile == null || profile.credits < cost) throw Exception('Crédits insuffisants');
-
-      final injectionPrompt = '''
-PRODUIT : ${request.product}
-PLATEFORME : ${request.platform}
-TON : ${request.tone}
-
-!!! MISSION COPYWRITER (AUGMENTER LA SATISFACTION) !!!
-1. Génère un message HYPER-PERSONNALISÉ pour ${request.product}.
-2. Ne sois pas vague. Utilise des arguments de vente spécifiques au produit.
-3. Ton : Humain, captivant, irrésistible.
-4. Structure AIDA (Attention, Intérêt, Désir, Action).
-
-Retourne uniquement ce JSON :
-{
-  "headline": "Accroche magnétique",
-  "content": "Texte persuasif détaillé utilisant les infos saisies",
-  "cta": "Appel à l'action puissant",
-  "hashtags": ["#Tag1", "#Tag2", "#Tag3"]
-}
-''';
-
       final response = await _client.functions.invoke(
         'smart-api',
         body: {
-          'type': 'video', // Utilisation du type 'video' pour bypasser les filtres serveurs
-          'product': injectionPrompt,
-          'audience': 'Potentiels Acheteurs',
-          'style': request.tone,
+          'type': 'marketing',
+          'product': request.product,
+          'platform': request.platform,
+          'tone': request.tone,
         },
       );
 
@@ -479,6 +435,204 @@ Retourne uniquement ce JSON :
     } catch (e) {
       print('Erreur generateMarketingPost: $e');
       rethrow;
+    }
+  }
+
+  // --- INCUBATEUR (GEMINI MENTOR) ---
+
+  Future<Map<String, dynamic>?> getActiveIncubatorProject() async {
+    final user = _client.auth.currentUser;
+    if (user == null) return null;
+
+    try {
+      final data = await _client
+          .from('incubator_projects')
+          .select()
+          .eq('user_id', user.id)
+          .eq('status', 'active')
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      
+      return data;
+    } catch (e) {
+      print('Erreur getActiveIncubatorProject: $e');
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> getProjectById(String projectId) async {
+    try {
+      final data = await _client.from('incubator_projects').select().eq('id', projectId).single();
+      return data;
+    } catch (e) {
+      print('Erreur getProjectById: $e');
+      return null;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getIncubatorTasks(String projectId) async {
+    try {
+      final data = await _client
+          .from('incubator_tasks')
+          .select()
+          .eq('project_id', projectId)
+          .order('week_number', ascending: true)
+          .order('created_at', ascending: true);
+      
+      return List<Map<String, dynamic>>.from(data);
+    } catch (e) {
+      print('Erreur getIncubatorTasks: $e');
+      return [];
+    }
+  }
+
+  Future<Map<String, dynamic>?> startIncubation(BusinessIdeaRequestModel request) async {
+    final user = _client.auth.currentUser;
+    if (user == null) throw Exception("Utilisateur non connecté");
+
+    // 1. Appeler l'API Gemini pour créer la structure du projet
+    final profile = await getProfile();
+    if (profile == null || profile.credits < 50) throw Exception("Crédits insuffisants (50 requis pour lancer une incubation)");
+
+    final response = await _client.functions.invoke(
+      'mentor-api',
+      body: {
+        'type': 'generate_startup',
+        'budget': request.budget,
+        'city': request.city,
+        'niche': request.niche,
+        'availableTime': request.availableTime,
+        'skills': request.skills,
+        'fears': request.fears,
+        'businessIdea': request.businessIdea,
+      },
+    );
+
+    if (response.status != 200) {
+      throw Exception('Erreur mentor-api: ${response.status}');
+    }
+
+    final data = response.data as Map<String, dynamic>;
+    
+    // 2. Sauvegarder le Projet
+    final projectInsert = await _client.from('incubator_projects').insert({
+      'user_id': user.id,
+      'title': data['title'] ?? 'Projet Startup',
+      'description': data['description'] ?? '',
+      'niche': request.niche,
+      'psychological_profile': {
+        'budget': request.budget,
+        'fears': request.fears,
+        'advice': data['psychologicalAdvice']
+      },
+    }).select().single();
+
+    final projectId = projectInsert['id'];
+
+    // 3. Sauvegarder les Tâches
+    final List<dynamic> generatedTasks = data['tasks'] ?? [];
+    List<Map<String, dynamic>> tasksToInsert = [];
+    for (var t in generatedTasks) {
+      tasksToInsert.add({
+        'project_id': projectId,
+        'user_id': user.id,
+        'week_number': t['week_number'] ?? 1,
+        'title': t['title'] ?? 'Nouvelle Tâche',
+        'description': t['description'] ?? '',
+        'status': 'pending'
+      });
+    }
+
+    if (tasksToInsert.isNotEmpty) {
+      await _client.from('incubator_tasks').insert(tasksToInsert);
+    }
+
+    await consumeCredits(50);
+    return projectInsert;
+  }
+
+  Future<void> updateTaskStatus(String taskId, String status) async {
+    try {
+      await _client.from('incubator_tasks').update({'status': status}).eq('id', taskId);
+    } catch (e) {
+      print('Erreur updateTaskStatus: $e');
+    }
+  }
+
+  // --- SUBMIT WEEKLY REVIEW ---
+
+  Future<Map<String, dynamic>?> submitWeeklyReview({
+    required String projectId,
+    required String userFeedback,
+    required int currentWeek,
+    required List<Map<String, dynamic>> previousTasks,
+  }) async {
+    final user = _client.auth.currentUser;
+    if (user == null) throw Exception("Utilisateur non connecté");
+
+    // 1. Appeler l'API Mentor pour l'analyse
+    final project = await _client.from('incubator_projects').select().eq('id', projectId).single();
+    
+    final response = await _client.functions.invoke(
+      'mentor-api',
+      body: {
+        'type': 'weekly_review',
+        'projectContext': project,
+        'previousTasks': previousTasks,
+        'userFeedback': userFeedback,
+      },
+    );
+
+    if (response.status != 200) {
+      throw Exception('Erreur mentor-api review: ${response.status}');
+    }
+
+    final data = response.data as Map<String, dynamic>;
+
+    // 2. Sauvegarder le rapport du mentor
+    await _client.from('mentor_reports').insert({
+      'project_id': projectId,
+      'user_id': user.id,
+      'week_number': currentWeek,
+      'user_feedback': userFeedback,
+      'mentor_response': data['mentor_response'],
+    });
+
+    // 3. Insérer les nouvelles tâches pour la semaine suivante
+    final List<dynamic> newGeneratedTasks = data['new_tasks'] ?? [];
+    List<Map<String, dynamic>> tasksToInsert = [];
+    for (var t in newGeneratedTasks) {
+      tasksToInsert.add({
+        'project_id': projectId,
+        'user_id': user.id,
+        'week_number': currentWeek + 1,
+        'title': t['title'] ?? 'Tâche Focus',
+        'description': t['description'] ?? '',
+        'status': 'pending'
+      });
+    }
+
+    if (tasksToInsert.isNotEmpty) {
+      await _client.from('incubator_tasks').insert(tasksToInsert);
+    }
+
+    return data;
+  }
+
+  Future<Map<String, dynamic>?> getLatestMentorReport(String projectId) async {
+    try {
+      final data = await _client
+          .from('mentor_reports')
+          .select()
+          .eq('project_id', projectId)
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      return data;
+    } catch (e) {
+      print('Erreur getLatestMentorReport: $e');
+      return null;
     }
   }
 }

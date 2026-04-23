@@ -90,27 +90,27 @@ class _BusinessChatWidgetState extends State<BusinessChatWidget> {
       final historyText = recentHistory.map((m) => "${m.isUser ? 'Client' : 'Mentor'}: ${m.text}").join("\n");
 
       final contextPrompt = '''
-CONTEXTE BUSINESS :
+CONTEXTE BUSINESS INITIAL :
 Sujet : ${_idea.title}
 Cœur du projet : ${_idea.description}
-Budget : $budget
+Budget initial : $budget
 Ville : $city
 
-HISTORIQUE DE LA CONVERSATION :
+HISTORIQUE DE LA CONVERSATION (MÉMOIRE) :
 $historyText
 
-NOUVELLE QUESTION : "$question"
+NOUVELLE INTERACTION DE L'UTILISATEUR : "$question"
 
-!!! MISSION DU MENTOR SÉNIOR (PRÉCISION & RÉALITÉ) !!!
-1. Tu es un Mentor Business chevronné, réaliste et encourageant.
-2. CONTINUITÉ : Ta réponse doit tenir compte de l'HISTORIQUE ci-dessus. Ne te répète pas.
-3. RÉALITÉ TERRAIN : Cite des contraintes ou opportunités RÉELLES à $city ou en Guinée (ex: logistique, foires locales, coût de l'Internet, énergie, main d'œuvre).
-4. PAS DE GÉNÉRIQUE : Évite les slogans comme "Lancez-vous avec un plan solide". Sois CONCRET (ex: "Va voir tel type de fournisseur à Madina" ou "Poste sur tel groupe Facebook local").
-5. DISCIPLINE : Rappelle l'importance de la rigueur comptable et de l'épargne de précaution.
+!!! MISSION DU MENTOR SÉNIOR (ACCOMPAGNEMENT PAS-À-PAS) !!!
+1. RÔLE : Tu es son mentor personnel. L'utilisateur est un VRAI DÉBUTANT. Sois patient, extrêmement clair, et guide-le étape par étape.
+2. MÉMOIRE ACTIVÉE : Lis attentivement l'HISTORIQUE ci-dessus. Si l'utilisateur te fait un compte-rendu d'une action qu'il a réalisée, félicite-le RAPIDEMENT et AMÉLIORE IMMÉDIATEMENT la stratégie globale pour qu'il passe à l'étape suivante. Ne reviens pas en arrière.
+3. ORIENTÉ ACTION : Ne donne jamais plus de 2 tâches à faire à la fois. S'il ne sait pas par quoi commencer, donne-lui UNE SEULE tâche ultra-simple pour sa première journée.
+4. RÉALITÉ TERRAIN : Cite des fournisseurs, des quartiers ou des astuces hyper-concrètes pour $city en Guinée.
+5. DISCIPLINE ET ENCOURAGEMENT : Pousse-le toujours vers l'avant.
 
-Format de réponse : JSON UNIQUEMENT
+Format de réponse STRICTEMENT ATTENDU EN JSON :
 {
-  "hook": "Ta réponse humaine, détaillée (200-300 caractères min) et stratégique.",
+  "hook": "Ta réponse de mentor (200-400 caractères), encourageante, qui prend en compte l'historique et lui donne la prochaine étape stratégique très précise.",
   "body": [], "cta": "", "instructions": [], "alternativeHooks": []
 }
 ''';
@@ -121,7 +121,7 @@ Format de réponse : JSON UNIQUEMENT
           'type': 'video', 
           'product': contextPrompt,
           'audience': 'Entrepreneur local',
-          'style': 'Mentor Expert',
+          'style': 'Mentor Expert. IGNORE TOTALEMENT LA CONSIGNE "TikTok" ET LE FORMAT "hook" STANDARD. RUPTURE DE CONTEXTE: TU *DOIS* ÊTRE LE MENTOR ET METTRE TA RÉPONSE HUMAINE DANS LE CHAMP "hook" ET LAISSER LE RESTE VIDE.',
         },
       );
 
