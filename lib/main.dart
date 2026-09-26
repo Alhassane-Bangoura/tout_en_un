@@ -12,7 +12,7 @@ import 'core/widgets/no_connection_page.dart';
 void main() async {
   try {
     WidgetsFlutterBinding.ensureInitialized();
-    
+
     // Initialize Supabase
     await SupabaseClientInstance.initialize();
 
@@ -23,22 +23,24 @@ void main() async {
     runApp(MyApp(hasSeenOnboarding: hasSeenOnboarding));
   } catch (e) {
     debugPrint('Critical Initialization Error: $e');
-    runApp(MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        backgroundColor: const Color(0xFF0D0D0D),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Text(
-              'Erreur critique au démarrage: $e',
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white),
+    runApp(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          backgroundColor: const Color(0xFF0D0D0D),
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Text(
+                'Erreur critique au démarrage: $e',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white),
+              ),
             ),
           ),
         ),
       ),
-    ));
+    );
   }
 }
 
@@ -72,7 +74,10 @@ class _MyAppState extends State<MyApp> {
       debugShowCheckedModeBanner: false,
       title: 'AB Business AI',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF00FFA3), brightness: Brightness.dark),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF00FFA3),
+          brightness: Brightness.dark,
+        ),
         useMaterial3: true,
         scaffoldBackgroundColor: const Color(0xFF0D0D0D),
       ),
@@ -81,12 +86,13 @@ class _MyAppState extends State<MyApp> {
           stream: Connectivity().onConnectivityChanged,
           builder: (context, snapshot) {
             final connectivityResults = snapshot.data ?? _currentConnectivity;
-            
+
             // Si pas de résultats ou résultat "none", on affiche l'écran de blocage
-            if (connectivityResults.isEmpty || connectivityResults.contains(ConnectivityResult.none)) {
+            if (connectivityResults.isEmpty ||
+                connectivityResults.contains(ConnectivityResult.none)) {
               return const NoConnectionPage();
             }
-            
+
             return child ?? const SizedBox.shrink();
           },
         );
@@ -94,11 +100,16 @@ class _MyAppState extends State<MyApp> {
       home: StreamBuilder<AuthState>(
         stream: Supabase.instance.client.auth.onAuthStateChange,
         builder: (context, authSnapshot) {
-          final session = authSnapshot.data?.session ?? Supabase.instance.client.auth.currentSession;
+          final session =
+              authSnapshot.data?.session ??
+              Supabase.instance.client.auth.currentSession;
 
-          if (authSnapshot.connectionState == ConnectionState.waiting && session == null) {
+          if (authSnapshot.connectionState == ConnectionState.waiting &&
+              session == null) {
             return const Scaffold(
-              body: Center(child: CircularProgressIndicator(color: Color(0xFF00FFA3))),
+              body: Center(
+                child: CircularProgressIndicator(color: Color(0xFF00FFA3)),
+              ),
             );
           }
 
@@ -106,8 +117,8 @@ class _MyAppState extends State<MyApp> {
             return const HomePage();
           } else {
             // Si l'utilisateur a déjà vu l'onboarding, on l'envoie sur AuthPage direct
-            return widget.hasSeenOnboarding 
-                ? const AuthPage() 
+            return widget.hasSeenOnboarding
+                ? const AuthPage()
                 : const OnboardingPage();
           }
         },
